@@ -1,0 +1,12 @@
+{
+  "widthCm": 9,
+  "heightCm": 5.5,
+  "output": "two-page-card.pdf",
+  "printBackground": true,
+  "media": "print",
+  "preferCssPageSize": false,
+  "mode": "combined",
+  "pages": [
+    { "path": "back.html", "name": "back" }
+  ]
+}

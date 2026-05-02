@@ -2,14 +2,20 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve, extname } from "node:path";
 import type { CliArgs } from "../cli/args";
 
+export interface PageEntry {
+  path: string;
+  name: string;
+}
+
 export interface DzgnrConfig {
-  input?: string;
   output?: string;
   widthCm?: number;
   heightCm?: number;
   printBackground?: boolean;
   media?: "print" | "screen";
   preferCssPageSize?: boolean;
+  pages?: PageEntry[];
+  mode?: "combined" | "separate";
 }
 
 export interface RenderOptions {
@@ -21,6 +27,8 @@ export interface RenderOptions {
   media: "print" | "screen";
   preferCssPageSize: boolean;
   json: boolean;
+  pages: PageEntry[];
+  mode: "combined" | "separate";
 }
 
 export function loadConfig(configPath?: string): DzgnrConfig {
@@ -85,5 +93,7 @@ export function mergeOptions(cliArgs: CliArgs, config: DzgnrConfig): RenderOptio
     media,
     preferCssPageSize: config.preferCssPageSize ?? false,
     json: cliArgs.json ?? false,
+    pages: config.pages ?? [],
+    mode: config.mode ?? "combined",
   };
 }

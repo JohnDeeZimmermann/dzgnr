@@ -2,11 +2,20 @@ import { readFileSync } from "node:fs";
 import { PDFDocument } from "pdf-lib";
 import { pdfPointsToCm, isWithinTolerance, roundToDecimals } from "../sizing/units";
 
+export interface PageDimension {
+  index: number;
+  widthPt: number;
+  heightPt: number;
+  widthCm: number;
+  heightCm: number;
+}
+
 export interface PdfValidationReport {
   outputPath: string;
   pageCount: number;
   expected: { widthCm: number; heightCm: number };
   actualFirstPage: { widthPt: number; heightPt: number; widthCm: number; heightCm: number };
+  actualPages: PageDimension[];
   dimensionsOk: boolean;
   warnings: string[];
 }
@@ -19,6 +28,7 @@ export async function validatePdf(
   expectedWidthCm: number,
   expectedHeightCm: number,
   renderWarnings: string[],
+  expectedPageCount?: number,
 ): Promise<PdfValidationReport> {
   const warnings = [...renderWarnings, CMYK_WARNING];
 
@@ -36,41 +46,61 @@ export async function validatePdf(
   const pdfDoc = await PDFDocument.load(pdfBytes);
   const pageCount = pdfDoc.getPageCount();
 
-  if (pageCount !== 1) {
-    warnings.push(`Expected 1 page, but PDF contains ${pageCount} pages.`);
+  if (expectedPageCount !== undefined && pageCount !== expectedPageCount) {
+    warnings.push(`Expected ${expectedPageCount} page(s), but PDF contains ${pageCount} pages.`);
   }
 
-  const firstPage = pdfDoc.getPage(0);
-  const size = firstPage.getSize();
+  let dimensionsOk = true;
+  const actualPages: PageDimension[] = [];
 
-  const actualWidthCm = roundToDecimals(pdfPointsToCm(size.width), 3);
-  const actualHeightCm = roundToDecimals(pdfPointsToCm(size.height), 3);
+  for (let i = 0; i < pageCount; i++) {
+    const pdfPage = pdfDoc.getPage(i);
+    const size = pdfPage.getSize();
 
-  const widthOk = isWithinTolerance(actualWidthCm, expectedWidthCm);
-  const heightOk = isWithinTolerance(actualHeightCm, expectedHeightCm);
+    const actualWidthCm = roundToDecimals(pdfPointsToCm(size.width), 3);
+    const actualHeightCm = roundToDecimals(pdfPointsToCm(size.height), 3);
 
-  if (!widthOk) {
-    warnings.push(
-      `Width mismatch: expected ${expectedWidthCm}cm, got ${actualWidthCm}cm (${size.width}pt).`,
-    );
+    actualPages.push({
+      index: i,
+      widthPt: size.width,
+      heightPt: size.height,
+      widthCm: actualWidthCm,
+      heightCm: actualHeightCm,
+    });
+
+    const widthOk = isWithinTolerance(actualWidthCm, expectedWidthCm);
+    const heightOk = isWithinTolerance(actualHeightCm, expectedHeightCm);
+
+    if (!widthOk) {
+      warnings.push(
+        `Page ${i + 1}: Width mismatch — expected ${expectedWidthCm}cm, got ${actualWidthCm}cm (${size.width}pt).`,
+      );
+    }
+    if (!heightOk) {
+      warnings.push(
+        `Page ${i + 1}: Height mismatch — expected ${expectedHeightCm}cm, got ${actualHeightCm}cm (${size.height}pt).`,
+      );
+    }
+
+    if (!widthOk || !heightOk) {
+      dimensionsOk = false;
+    }
   }
-  if (!heightOk) {
-    warnings.push(
-      `Height mismatch: expected ${expectedHeightCm}cm, got ${actualHeightCm}cm (${size.height}pt).`,
-    );
-  }
+
+  const firstPage = actualPages[0];
 
   return {
     outputPath,
     pageCount,
     expected: { widthCm: expectedWidthCm, heightCm: expectedHeightCm },
     actualFirstPage: {
-      widthPt: size.width,
-      heightPt: size.height,
-      widthCm: actualWidthCm,
-      heightCm: actualHeightCm,
+      widthPt: firstPage.widthPt,
+      heightPt: firstPage.heightPt,
+      widthCm: firstPage.widthCm,
+      heightCm: firstPage.heightCm,
     },
-    dimensionsOk: widthOk && heightOk,
+    actualPages,
+    dimensionsOk,
     warnings,
   };
 }
@@ -81,10 +111,21 @@ export function printReport(report: PdfValidationReport): void {
   console.log(
     `Expected: ${report.expected.widthCm}cm x ${report.expected.heightCm}cm`,
   );
-  console.log(
-    `Actual:   ${report.actualFirstPage.widthCm}cm x ${report.actualFirstPage.heightCm}cm ` +
-      `(${report.actualFirstPage.widthPt}pt x ${report.actualFirstPage.heightPt}pt)`,
-  );
+
+  for (const page of report.actualPages) {
+    if (report.actualPages.length > 1) {
+      console.log(
+        `  Page ${page.index + 1}: ${page.widthCm}cm x ${page.heightCm}cm ` +
+          `(${page.widthPt}pt x ${page.heightPt}pt)`,
+      );
+    } else {
+      console.log(
+        `Actual:   ${page.widthCm}cm x ${page.heightCm}cm ` +
+          `(${page.widthPt}pt x ${page.heightPt}pt)`,
+      );
+    }
+  }
+
   console.log(
     `Dimensions OK: ${report.dimensionsOk ? "yes" : "NO"}`,
   );

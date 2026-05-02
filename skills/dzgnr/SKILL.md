@@ -7,13 +7,13 @@ description: Use when creating print-oriented designs with Dzgnr, rendering HTML
 
 ## When to Use This Skill
 
-Use this skill when the task is to design and render print-focused artifacts with Dzgnr, including business cards, flyers, posters, banners, one-page signage, and similar physical deliverables where exact page dimensions matter.
+Use this skill when the task is to design and render print-focused artifacts with Dzgnr, including business cards, flyers, posters, banners, signage, and similar physical deliverables where exact page dimensions matter.
 
 ## Core Workflow
 
 1. Create a self-contained directory for one artifact.
 2. Add `dzgnr.json` with `widthCm`, `heightCm`, `output`, `printBackground`, `media`, and `preferCssPageSize`.
-3. Add `index.html` as the source design.
+3. Add `index.html` as the source design for single-page work, or `front.html` plus extra page files for multi-page work.
 4. Add local assets under `assets/` when required.
 5. Add a short `README.md` describing artifact intent, dimensions, assets, and render command.
 6. Render from inside the project directory:
@@ -39,6 +39,8 @@ my-artifact/
   README.md
   dzgnr.json
   index.html
+  front.html
+  back.html
   assets/
     logo.svg
 ```
@@ -52,6 +54,9 @@ See `references/project-structure.md` for file-by-file guidance.
 - Use CLI size flags only for quick local experiments.
 - Keep config values reproducible and commit them with each artifact.
 - Keep CSS page assumptions aligned with config where useful, but treat `dzgnr.json` as source of truth.
+- Use `mode: "combined"` (default) for one PDF containing all pages.
+- Use `mode: "separate"` for one PDF per page.
+- For multi-page output, pass the front page as CLI input and add additional pages in config via `pages`.
 
 Example config:
 
@@ -66,13 +71,27 @@ Example config:
 }
 ```
 
+Two-page config example:
+
+```json
+{
+  "widthCm": 9,
+  "heightCm": 5.5,
+  "output": "business-card.pdf",
+  "mode": "combined",
+  "pages": [
+    { "path": "back.html", "name": "back" }
+  ]
+}
+```
+
 ## HTML/CSS Design Rules
 
 - Use `%`, grid/flex fractions, `clamp()`, `em`, and `rem` for adaptable layout internals.
 - Use `cm` and `mm` for safe-area constants, borders, and print-critical constraints.
 - Use `pt` for typography.
 - Avoid hard-coding every internal offset in `cm`; it makes size overrides brittle.
-- Keep artifacts single-page; Dzgnr warns when output has multiple pages.
+- Keep each source HTML as a single printed page; use config `pages` to assemble multi-page PDFs.
 - Preserve color intent in print with:
 
   ```css
@@ -124,7 +143,7 @@ dzgnr render index.html --config dzgnr.json --json
 Validation checks:
 
 - `dimensionsOk: true`
-- expected page count (normally 1)
+- expected page count (1 for single-page, higher for multi-page)
 - warnings reviewed and understood
 - expected Chromium CMYK/PDF-X caveat present
 
@@ -147,6 +166,6 @@ See `references/print-sizes.md`.
 
 - `examples/business-card/`: 9.0 x 5.5 cm identity card with compact hierarchy.
 - `examples/event-flyer/`: A5 event flyer using a modular grid and scalable type.
-- `examples/wide-banner/`: 30.0 x 10.0 cm horizontal banner with distance-readable type.
+- `examples/two-page-card/`: 9.0 x 5.5 cm front/back business card using config `pages`.
 
-Each example includes `README.md`, `dzgnr.json`, `index.html`, and local assets.
+Each example includes `README.md`, `dzgnr.json`, HTML source files, and local assets when needed.
