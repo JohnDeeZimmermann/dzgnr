@@ -1,0 +1,8 @@
+{
+  "widthCm": 14.8,
+  "heightCm": 21,
+  "output": "event-flyer.pdf",
+  "printBackground": true,
+  "media": "print",
+  "preferCssPageSize": false
+}

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wide Banner</title>
+    <style>
+      :root {
+        --safe: 4.5%;
+        --headline: clamp(24pt, 7vw, 42pt);
+        --meta: clamp(10pt, 2vw, 14pt);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        font-family: "Gill Sans", "Segoe UI", sans-serif;
+        color: #fbfbf8;
+      }
+
+      .page {
+        width: 100%;
+        height: 100%;
+        padding: var(--safe);
+        display: grid;
+        grid-template-columns: minmax(20%, 8cm) 1fr;
+        gap: clamp(0.25cm, 2.5vw, 0.8cm);
+        align-items: center;
+        background: linear-gradient(115deg, #203949 0%, #1b5f67 48%, #d8672f 100%);
+      }
+
+      .pattern {
+        align-self: stretch;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border: 0.06cm solid rgba(251, 251, 248, 0.75);
+      }
+
+      .content {
+        display: grid;
+        gap: clamp(0.12cm, 1vw, 0.34cm);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: var(--headline);
+        line-height: 0.95;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .meta {
+        font-size: var(--meta);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <img class="pattern" src="assets/chevrons.svg" alt="Directional chevron pattern" />
+      <section class="content">
+        <h1>Warehouse Sale Weekend</h1>
+        <div class="meta">May 10-11 / 10:00-18:00 / Dock 4 Market Hall</div>
+      </section>
+    </main>
+  </body>
+</html>

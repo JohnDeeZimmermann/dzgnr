@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 1050" role="img" aria-label="Radial rays motif">
+  <g fill="none" stroke="#d46d22" stroke-width="16" stroke-linecap="round" opacity="0.9">
+    <path d="M370 525V20" />
+    <path d="M370 525L620 70" />
+    <path d="M370 525L700 220" />
+    <path d="M370 525L735 420" />
+    <path d="M370 525L735 630" />
+    <path d="M370 525L700 830" />
+    <path d="M370 525L620 980" />
+    <path d="M370 525V1030" />
+    <path d="M370 525L120 980" />
+    <path d="M370 525L40 830" />
+    <path d="M370 525L5 630" />
+    <path d="M370 525L5 420" />
+    <path d="M370 525L40 220" />
+    <path d="M370 525L120 70" />
+  </g>
+</svg>

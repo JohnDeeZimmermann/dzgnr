@@ -1,0 +1,8 @@
+{
+  "widthCm": 9,
+  "heightCm": 5.5,
+  "output": "business-card.pdf",
+  "printBackground": true,
+  "media": "print",
+  "preferCssPageSize": false
+}

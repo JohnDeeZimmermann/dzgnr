@@ -1,0 +1,8 @@
+{
+  "widthCm": 30,
+  "heightCm": 10,
+  "output": "wide-banner.pdf",
+  "printBackground": true,
+  "media": "print",
+  "preferCssPageSize": false
+}

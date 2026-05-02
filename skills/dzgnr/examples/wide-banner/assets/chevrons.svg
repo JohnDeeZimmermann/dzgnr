@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220" role="img" aria-label="Chevron pattern">
+  <rect width="600" height="220" fill="#113443" />
+  <g fill="none" stroke="#d58b4b" stroke-width="18" stroke-linejoin="round">
+    <path d="M30 20l120 90-120 90" />
+    <path d="M160 20l120 90-120 90" />
+    <path d="M290 20l120 90-120 90" />
+    <path d="M420 20l120 90-120 90" />
+  </g>
+</svg>
