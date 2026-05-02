@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Card</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 9cm;
+      height: 5.5cm;
+      font-family: "Inter", sans-serif;
+      background: #1a1a2e;
+      color: #eaeaea;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .card {
+      padding: 0.8cm;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .name {
+      font-size: 16pt;
+      font-weight: 700;
+      letter-spacing: 0.5pt;
+    }
+
+    .title {
+      font-size: 9pt;
+      font-weight: 400;
+      color: #a0a0b8;
+      margin-top: 2pt;
+    }
+
+    .contact {
+      font-size: 8pt;
+      color: #8888a0;
+      line-height: 1.6;
+    }
+
+    .accent {
+      width: 1.5cm;
+      height: 2px;
+      background: #e94560;
+      margin: 0.3cm 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div>
+      <div class="name">Jane Designer</div>
+      <div class="title">Principal Product Designer</div>
+      <div class="accent"></div>
+    </div>
+    <div class="contact">
+      jane@example.com<br>
+      +1 (555) 123-4567<br>
+      example.com
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "dzgnr",
+  "version": "0.1.0",
+  "description": "CLI tool to generate properly sized PDFs from HTML designs — built for AI agents",
+  "type": "module",
+  "bin": {
+    "dzgnr": "./src/index.ts"
+  },
+  "scripts": {
+    "dzgnr": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "typecheck": "bun run tsc --noEmit"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.52.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^6.0.3"
+  }
+}
