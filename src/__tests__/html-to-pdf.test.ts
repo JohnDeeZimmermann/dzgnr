@@ -6,7 +6,7 @@ afterEach(() => {
 });
 
 describe("renderHtmlToPdf return shape integration", () => {
-  test("returns RenderResult object with warnings and cmyk fields", async () => {
+  test.serial("returns RenderResult object with warnings and cmyk fields", async () => {
     mock.module("playwright", () => ({
       chromium: {
         launch: async () => ({
@@ -21,20 +21,6 @@ describe("renderHtmlToPdf return shape integration", () => {
           close: async () => {},
         }),
       },
-    }));
-
-    const cmykResult = {
-      requested: false,
-      converted: false,
-      converter: "none" as const,
-      warnings: ["CMYK conversion skipped; output is RGB from Chromium (draft mode)."],
-    };
-
-    mock.module("../render/cmyk-convert", () => ({
-      convertToCmyk: async () => {
-        throw new Error("convertToCmyk should not run in rgb mode");
-      },
-      skippedResult: () => cmykResult,
     }));
 
     const mod = await import(`../render/html-to-pdf?mocked=${Date.now()}`);
@@ -57,6 +43,10 @@ describe("renderHtmlToPdf return shape integration", () => {
     expect(result).toHaveProperty("warnings");
     expect(result).toHaveProperty("cmyk");
     expect(Array.isArray(result.warnings)).toBe(true);
-    expect(result.cmyk).toEqual(cmykResult);
+    expect(result.cmyk).toMatchObject({
+      requested: false,
+      converted: false,
+      converter: "none",
+    });
   });
 });

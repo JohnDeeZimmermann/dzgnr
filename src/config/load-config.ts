@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from "node:fs";
-import { resolve, extname } from "node:path";
+import { resolve, extname, dirname } from "node:path";
 import type { CliArgs } from "../cli/args";
 
 export interface PageEntry {
@@ -38,6 +38,7 @@ export interface RenderOptions {
 export function loadConfig(configPath?: string): DzgnrConfig {
   const path = configPath ?? "dzgnr.json";
   const resolved = resolve(path);
+  const configDir = dirname(resolved);
 
   if (!existsSync(resolved)) {
     return {};
@@ -61,7 +62,16 @@ export function loadConfig(configPath?: string): DzgnrConfig {
     throw new Error(`Config file must contain a JSON object: ${resolved}`);
   }
 
-  return config as DzgnrConfig;
+  const parsed = config as DzgnrConfig;
+
+  if (Array.isArray(parsed.pages)) {
+    parsed.pages = parsed.pages.map((page) => ({
+      ...page,
+      path: resolve(configDir, page.path),
+    }));
+  }
+
+  return parsed;
 }
 
 export function mergeOptions(cliArgs: CliArgs, config: DzgnrConfig): RenderOptions {
