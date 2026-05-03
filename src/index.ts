@@ -3,6 +3,7 @@
 import { parseArgs } from "./cli/args";
 import { loadConfig, mergeOptions } from "./config/load-config";
 import { renderHtmlToPdf } from "./render/html-to-pdf";
+import type { RenderResult } from "./render/html-to-pdf";
 import { validatePdf, printReport } from "./validate/pdf-report";
 
 function deriveOutputPath(basePath: string, name: string): string {
@@ -16,7 +17,7 @@ async function main(): Promise<void> {
   const config = loadConfig(cliArgs.configPath);
   const options = mergeOptions(cliArgs, config);
 
-  const renderWarnings = await renderHtmlToPdf(options);
+  const renderResult: RenderResult = await renderHtmlToPdf(options);
 
   if (options.mode === "separate") {
     const pages = [{ path: options.inputPath, name: "front" }, ...options.pages];
@@ -30,7 +31,8 @@ async function main(): Promise<void> {
         outputPath,
         options.widthCm,
         options.heightCm,
-        renderWarnings,
+        renderResult.warnings,
+        renderResult.cmyk,
       );
       reports.push(report);
     }
@@ -48,7 +50,8 @@ async function main(): Promise<void> {
       options.outputPath,
       options.widthCm,
       options.heightCm,
-      renderWarnings,
+      renderResult.warnings,
+      renderResult.cmyk,
       expectedPageCount,
     );
     if (options.json) {

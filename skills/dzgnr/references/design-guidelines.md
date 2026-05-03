@@ -11,7 +11,7 @@
 
 - Keep essential content at least 3-5 mm from trim edges; use more on small formats.
 - Full-bleed decorative backgrounds are acceptable, but do not claim printer-grade bleed/crop mark support.
-- Dzgnr's Chromium pipeline does not guarantee true CMYK/PDF-X output.
+- Dzgnr converts output to CMYK via Ghostscript by default. PDF/X certification is not provided.
 
 ## Color and Print Background Handling
 
@@ -42,5 +42,5 @@ print-color-adjust: exact;
 1. Render with config defaults.
 2. Validate using `--json`.
 3. Confirm `dimensionsOk: true` and page count expectations.
-4. Inspect warnings and keep the expected CMYK/PDF-X caveat in mind.
+4. Inspect warnings and CMYK conversion status (`color.validation`).
 5. Iterate spacing, hierarchy, and contrast until the piece is strong at real size.

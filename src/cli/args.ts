@@ -7,6 +7,7 @@ export interface CliArgs {
   configPath?: string;
   screen?: boolean;
   json?: boolean;
+  rgb?: boolean;
 }
 
 function showUsage(): never {
@@ -21,6 +22,7 @@ Options:
   --out <path>     Output PDF path (default: derived from input name)
   --config <path>  Path to JSON config file
   --screen         Use screen media instead of print media
+  --rgb            Skip CMYK conversion; output Chromium RGB PDF directly
   --json           Output validation report as JSON
 
 Example:
@@ -47,7 +49,7 @@ export function parseArgs(argv: string[]): CliArgs {
   for (let i = 1; i < args.length; i++) {
     if (args[i].startsWith("--")) {
       const key = args[i].slice(2);
-      if (key === "screen" || key === "json") {
+      if (key === "screen" || key === "json" || key === "rgb") {
         flags[key] = "true";
       } else if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
         flags[key] = args[i + 1];
@@ -88,5 +90,6 @@ export function parseArgs(argv: string[]): CliArgs {
     configPath: flags.config,
     screen: flags.screen === "true",
     json: flags.json === "true",
+    rgb: flags.rgb === "true" ? true : undefined,
   };
 }

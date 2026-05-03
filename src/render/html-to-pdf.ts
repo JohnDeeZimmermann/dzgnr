@@ -2,12 +2,19 @@ import { chromium } from "playwright";
 import type { Page } from "playwright";
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
-import { mkdtempSync, unlinkSync, rmSync } from "node:fs";
+import { mkdtempSync, unlinkSync, rmSync, renameSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { formatCmForPlaywright } from "../sizing/units";
 import { fontWaitScript } from "../fonts/wait-for-fonts";
 import { mergePdfs } from "./merge-pdfs";
+import { convertToCmyk, skippedResult } from "./cmyk-convert";
+import type { CmykConversionResult } from "./cmyk-convert";
 import type { RenderOptions } from "../config/load-config";
+
+export interface RenderResult {
+  warnings: string[];
+  cmyk: CmykConversionResult;
+}
 
 async function renderSinglePage(
   page: Page,
@@ -46,7 +53,7 @@ function deriveOutputPath(basePath: string, name: string): string {
   return basePath.slice(0, dotIndex) + "-" + name + ".pdf";
 }
 
-export async function renderHtmlToPdf(options: RenderOptions): Promise<string[]> {
+export async function renderHtmlToPdf(options: RenderOptions): Promise<RenderResult> {
   const warnings: string[] = [];
   const browser = await chromium.launch({ headless: true });
 
@@ -78,7 +85,26 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<string[]>
           tempFiles.push(tempPath);
         }
 
-        await mergePdfs(tempFiles, options.outputPath);
+        const mergedRgbPath = `${tmpDir}/merged-rgb.pdf`;
+        await mergePdfs(tempFiles, mergedRgbPath);
+
+        if (options.cmyk) {
+          const cmykResult = await convertToCmyk(
+            mergedRgbPath,
+            options.outputPath,
+            options.cmykProfile,
+          );
+          warnings.push(...cmykResult.warnings);
+          return { warnings, cmyk: cmykResult };
+        } else {
+          try {
+            renameSync(mergedRgbPath, options.outputPath);
+          } catch {
+            copyFileSync(mergedRgbPath, options.outputPath);
+            try { unlinkSync(mergedRgbPath); } catch {}
+          }
+          return { warnings, cmyk: skippedResult() };
+        }
       } finally {
         for (const tf of tempFiles) {
           try { unlinkSync(tf); } catch {}
@@ -86,21 +112,56 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<string[]>
         try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
       }
     } else {
-      for (let i = 0; i < pages.length; i++) {
-        const outputPath =
-          i === 0 ? options.outputPath : deriveOutputPath(options.outputPath, pages[i].name);
-        const pageWarnings = await renderSinglePage(
-          page,
-          pages[i].path,
-          outputPath,
-          options,
-          pages[i].name,
-        );
-        warnings.push(...pageWarnings);
-      }
-    }
+      let cmykResult: CmykConversionResult = skippedResult();
 
-    return warnings;
+      for (let i = 0; i < pages.length; i++) {
+        const finalOutputPath =
+          i === 0 ? options.outputPath : deriveOutputPath(options.outputPath, pages[i].name);
+
+        if (options.cmyk) {
+          const tmpDir = mkdtempSync(`${tmpdir()}/dzgnr-`);
+          let tempRgbPath: string;
+          try {
+            tempRgbPath = `${tmpDir}/page-rgb.pdf`;
+          } catch {
+            throw new Error("Failed to create temporary directory for page render.");
+          }
+
+          try {
+            const pageWarnings = await renderSinglePage(
+              page,
+              pages[i].path,
+              tempRgbPath,
+              options,
+              pages[i].name,
+            );
+            warnings.push(...pageWarnings);
+
+            const convResult = await convertToCmyk(
+              tempRgbPath,
+              finalOutputPath,
+              options.cmykProfile,
+            );
+            warnings.push(...convResult.warnings);
+            if (i === 0) cmykResult = convResult;
+          } finally {
+            try { unlinkSync(tempRgbPath); } catch {}
+            try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+          }
+        } else {
+          const pageWarnings = await renderSinglePage(
+            page,
+            pages[i].path,
+            finalOutputPath,
+            options,
+            pages[i].name,
+          );
+          warnings.push(...pageWarnings);
+        }
+      }
+
+      return { warnings, cmyk: cmykResult };
+    }
   } finally {
     await browser.close();
   }

@@ -28,7 +28,7 @@ Use this skill when the task is to design and render print-focused artifacts wit
    dzgnr render index.html --config dzgnr.json --json
    ```
 
-8. Confirm `dimensionsOk: true`, inspect warnings, and treat the Chromium CMYK/PDF-X warning as expected behavior.
+8. Confirm `dimensionsOk: true`, inspect warnings, and check CMYK conversion status.
 
 ## Required Project Structure
 
@@ -145,7 +145,7 @@ Validation checks:
 - `dimensionsOk: true`
 - expected page count (1 for single-page, higher for multi-page)
 - warnings reviewed and understood
-- expected Chromium CMYK/PDF-X caveat present
+- CMYK conversion status: `color.validation` should be `"passed"`
 
 ## Design Quality Checklist
 
@@ -156,7 +156,7 @@ Validation checks:
 - Keep key content within safe area (typically 3-5 mm from trim edges).
 - Prefer vector assets and use 300 DPI raster images when needed.
 - Avoid generic AI style cliches (default purple gradients, arbitrary blobs, centered-card sameness).
-- Do not claim true CMYK/PDF-X/crop-mark guarantees from Chromium output.
+- Dzgnr converts to CMYK via Ghostscript, but does not claim PDF/X compliance.
 
 ## Common Print Sizes
 

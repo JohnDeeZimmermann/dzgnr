@@ -16,6 +16,8 @@ export interface DzgnrConfig {
   preferCssPageSize?: boolean;
   pages?: PageEntry[];
   mode?: "combined" | "separate";
+  cmyk?: boolean;
+  cmykProfile?: string;
 }
 
 export interface RenderOptions {
@@ -29,6 +31,8 @@ export interface RenderOptions {
   json: boolean;
   pages: PageEntry[];
   mode: "combined" | "separate";
+  cmyk: boolean;
+  cmykProfile?: string;
 }
 
 export function loadConfig(configPath?: string): DzgnrConfig {
@@ -84,6 +88,8 @@ export function mergeOptions(cliArgs: CliArgs, config: DzgnrConfig): RenderOptio
 
   const normalizedOutput = outputPath.endsWith(".pdf") ? outputPath : outputPath + ".pdf";
 
+  const cmyk = cliArgs.rgb ? false : (config.cmyk ?? true);
+
   return {
     inputPath,
     outputPath: normalizedOutput,
@@ -95,5 +101,7 @@ export function mergeOptions(cliArgs: CliArgs, config: DzgnrConfig): RenderOptio
     json: cliArgs.json ?? false,
     pages: config.pages ?? [],
     mode: config.mode ?? "combined",
+    cmyk,
+    cmykProfile: config.cmykProfile,
   };
 }
