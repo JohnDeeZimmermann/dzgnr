@@ -8,6 +8,8 @@ export interface CliArgs {
   screen?: boolean;
   json?: boolean;
   rgb?: boolean;
+  png?: boolean;
+  pngDpi?: number;
 }
 
 function showUsage(): never {
@@ -24,9 +26,11 @@ Options:
   --screen         Use screen media instead of print media
   --rgb            Skip CMYK conversion; output Chromium RGB PDF directly
   --json           Output validation report as JSON
+  --png            Generate RGB PNG preview(s) from the final PDF output
+  --png-dpi <dpi>  PNG preview resolution in DPI (default: 150)
 
 Example:
-  dzgnr render design.html --width 9 --height 5.5 --out business-card.pdf`);
+  dzgnr render design.html --width 9 --height 5.5 --out business-card.pdf --png`);
   process.exit(1);
 }
 
@@ -49,7 +53,7 @@ export function parseArgs(argv: string[]): CliArgs {
   for (let i = 1; i < args.length; i++) {
     if (args[i].startsWith("--")) {
       const key = args[i].slice(2);
-      if (key === "screen" || key === "json" || key === "rgb") {
+      if (key === "screen" || key === "json" || key === "rgb" || key === "png") {
         flags[key] = "true";
       } else if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
         flags[key] = args[i + 1];
@@ -81,6 +85,13 @@ export function parseArgs(argv: string[]): CliArgs {
     process.exit(1);
   }
 
+  const pngDpi = flags["png-dpi"] ? parseFloat(flags["png-dpi"]) : undefined;
+
+  if (pngDpi !== undefined && (isNaN(pngDpi) || pngDpi <= 0 || !isFinite(pngDpi))) {
+    console.error(`Error: Invalid PNG DPI "${flags["png-dpi"]}". Must be a positive finite number.\n`);
+    process.exit(1);
+  }
+
   return {
     command: "render",
     inputPath,
@@ -91,5 +102,7 @@ export function parseArgs(argv: string[]): CliArgs {
     screen: flags.screen === "true",
     json: flags.json === "true",
     rgb: flags.rgb === "true" ? true : undefined,
+    png: flags.png === "true" ? true : undefined,
+    pngDpi,
   };
 }

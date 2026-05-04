@@ -35,6 +35,37 @@ describe("config merge CMYK behavior", () => {
   });
 });
 
+describe("config merge PNG behavior", () => {
+  test("config png=true merges into render options", () => {
+    const merged = mergeOptions(baseCli(), { png: true });
+    expect(merged.png).toBe(true);
+  });
+
+  test("png defaults to false when unset", () => {
+    const merged = mergeOptions(baseCli(), {});
+    expect(merged.png).toBe(false);
+  });
+
+  test("pngDpi defaults to 150 when unset", () => {
+    const merged = mergeOptions(baseCli(), {});
+    expect(merged.pngDpi).toBe(150);
+  });
+
+  test("pngDpi from config is used when CLI does not override", () => {
+    const merged = mergeOptions(baseCli(), { pngDpi: 240 });
+    expect(merged.pngDpi).toBe(240);
+  });
+
+  test("CLI pngDpi overrides config pngDpi", () => {
+    const merged = mergeOptions(baseCli({ pngDpi: 300 }), { pngDpi: 180 });
+    expect(merged.pngDpi).toBe(300);
+  });
+
+  test.each([-100, 0])("invalid config pngDpi (%p) throws", (dpi) => {
+    expect(() => mergeOptions(baseCli(), { pngDpi: dpi })).toThrow(/Invalid PNG DPI/i);
+  });
+});
+
 describe("loadConfig path resolution", () => {
   test("resolves pages paths relative to config file directory", () => {
     const root = mkdtempSync(join(tmpdir(), "dzgnr-load-config-"));

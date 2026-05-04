@@ -27,12 +27,17 @@ async function main(): Promise<void> {
         page.name === "front"
           ? options.outputPath
           : deriveOutputPath(options.outputPath, page.name);
+      const pngOutputs = renderResult.png.outputs
+        .filter((png) => png.sourcePdfPath === outputPath)
+        .map((png) => png.outputPath);
       const report = await validatePdf(
         outputPath,
         options.widthCm,
         options.heightCm,
         renderResult.warnings,
         renderResult.cmyk,
+        undefined,
+        pngOutputs.length > 0 ? pngOutputs : undefined,
       );
       reports.push(report);
     }
@@ -46,6 +51,7 @@ async function main(): Promise<void> {
     }
   } else {
     const expectedPageCount = 1 + options.pages.length;
+    const pngOutputs = renderResult.png.outputs.map((png) => png.outputPath);
     const report = await validatePdf(
       options.outputPath,
       options.widthCm,
@@ -53,6 +59,7 @@ async function main(): Promise<void> {
       renderResult.warnings,
       renderResult.cmyk,
       expectedPageCount,
+      pngOutputs.length > 0 ? pngOutputs : undefined,
     );
     if (options.json) {
       console.log(JSON.stringify(report, null, 2));

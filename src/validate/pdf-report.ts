@@ -28,6 +28,7 @@ export interface PdfValidationReport {
   dimensionsOk: boolean;
   warnings: string[];
   color: ColorStatus;
+  pngOutputs?: string[];
 }
 
 export async function validatePdf(
@@ -37,6 +38,7 @@ export async function validatePdf(
   renderWarnings: string[],
   cmyk: CmykConversionResult,
   expectedPageCount?: number,
+  pngOutputs?: string[],
 ): Promise<PdfValidationReport> {
   const warnings = [...renderWarnings];
 
@@ -127,6 +129,7 @@ export async function validatePdf(
       profilePath: cmyk.profilePath,
       validation: cmyk.requested && cmyk.converted ? "passed" : "warning",
     },
+    pngOutputs,
   };
 }
 
@@ -170,8 +173,16 @@ export function printReport(report: PdfValidationReport): void {
         : "CMYK:  skipped (RGB/draft mode)";
   console.log(colorLabel);
 
+  if (report.pngOutputs && report.pngOutputs.length > 0) {
+    console.log(`\nPNG previews:`);
+    for (const pngPath of report.pngOutputs) {
+      console.log(`  ${pngPath}`);
+    }
+  }
+
   if (report.dimensionsOk && report.color.validation === "passed") {
-    console.log(`\nPDF generated successfully.`);
+    const suffix = report.pngOutputs && report.pngOutputs.length > 0 ? " PNG previews generated." : "";
+    console.log(`\nPDF generated successfully.${suffix}`);
   }
 
   console.log();

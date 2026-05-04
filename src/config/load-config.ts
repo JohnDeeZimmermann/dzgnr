@@ -18,6 +18,8 @@ export interface DzgnrConfig {
   mode?: "combined" | "separate";
   cmyk?: boolean;
   cmykProfile?: string;
+  png?: boolean;
+  pngDpi?: number;
 }
 
 export interface RenderOptions {
@@ -33,6 +35,8 @@ export interface RenderOptions {
   mode: "combined" | "separate";
   cmyk: boolean;
   cmykProfile?: string;
+  png: boolean;
+  pngDpi: number;
 }
 
 export function loadConfig(configPath?: string): DzgnrConfig {
@@ -100,6 +104,13 @@ export function mergeOptions(cliArgs: CliArgs, config: DzgnrConfig): RenderOptio
 
   const cmyk = cliArgs.rgb ? false : (config.cmyk ?? true);
 
+  const png = cliArgs.png === true ? true : (config.png ?? false);
+
+  const pngDpi = cliArgs.pngDpi ?? config.pngDpi ?? 150;
+  if (pngDpi <= 0 || !isFinite(pngDpi)) {
+    throw new Error(`Invalid PNG DPI: ${pngDpi}. Must be a positive finite number.`);
+  }
+
   return {
     inputPath,
     outputPath: normalizedOutput,
@@ -113,5 +124,7 @@ export function mergeOptions(cliArgs: CliArgs, config: DzgnrConfig): RenderOptio
     mode: config.mode ?? "combined",
     cmyk,
     cmykProfile: config.cmykProfile,
+    png,
+    pngDpi,
   };
 }

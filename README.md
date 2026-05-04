@@ -53,6 +53,8 @@ Options:
   --screen         Use screen media instead of print media
   --rgb            Skip CMYK conversion; output Chromium RGB PDF directly
   --json           Output validation report as JSON
+  --png            Generate RGB PNG preview(s) from the final PDF output
+  --png-dpi <dpi>  PNG preview resolution in DPI (default: 150)
 ```
 
 ## Configuration
@@ -91,6 +93,31 @@ Specify a custom ICC profile:
 
 Dzgnr uses Ghostscript's bundled default CMYK profile when none is explicitly set. See `profiles/README.md` for details on profiles.
 
+### PNG previews
+
+Generate RGB PNG previews from the final PDF output for visual inspection:
+
+```bash
+dzgnr render design.html --width 9 --height 5.5 --out business-card.pdf --png
+```
+
+Or enable via config:
+
+```json
+{
+  "png": true,
+  "pngDpi": 150
+}
+```
+
+- PNGs are generated from the final PDF (after CMYK conversion when enabled), not from Chromium screenshots.
+- When CMYK is enabled, PNGs are ICC-color-managed from CMYK back into sRGB, reflecting print output appearance.
+- With `--rgb`, PNGs are direct rasterizations from the RGB PDF (marked as "rgb-draft" in reports).
+- For multi-page PDFs, one PNG is generated per PDF page (e.g. `business-card-1.png`, `business-card-2.png`).
+- Default DPI is 150 (good balance of quality and file size). Use `--png-dpi 300` for print-proof fidelity.
+- Ghostscript is required for PNG generation (same as CMYK conversion).
+- CLI flags `--png` and `--png-dpi` override config values.
+
 ## Google Fonts
 
 Include Google Fonts in your HTML with standard `<link>` tags. Dzgnr waits for font loading before generating the PDF. If fonts fail to load (e.g., no network access), a warning is emitted but rendering continues.
@@ -109,6 +136,7 @@ After rendering, Dzgnr inspects the generated PDF and reports:
 - expected vs actual page dimensions (cm, pt)
 - dimension tolerance check
 - CMYK conversion status
+- PNG preview paths (when `--png` is used)
 - warnings for mismatches, font readiness, and conversion issues
 
 Pass `--json` for machine-readable output.

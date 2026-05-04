@@ -1,9 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PDFDocument } from "pdf-lib";
-import { validatePdf } from "../validate/pdf-report";
+import { printReport, validatePdf } from "../validate/pdf-report";
 
 async function createPdf(path: string, pages: Array<{ widthPt: number; heightPt: number }>) {
   const doc = await PDFDocument.create();
@@ -104,5 +104,67 @@ describe("PDF validation reporting with CMYK status", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  test("validatePdf includes pngOutputs when provided", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "dzgnr-test-"));
+    const pdfPath = join(dir, "out.pdf");
+    try {
+      await createPdf(pdfPath, [{ widthPt: 255.118, heightPt: 155.906 }]);
+      const pngOutputs = [join(dir, "out-1.png"), join(dir, "out-2.png")];
+
+      const report = await validatePdf(
+        pdfPath,
+        9,
+        5.5,
+        [],
+        {
+          requested: true,
+          converted: true,
+          converter: "ghostscript",
+          warnings: [],
+        },
+        1,
+        pngOutputs,
+      );
+
+      expect(report.pngOutputs).toEqual(pngOutputs);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("printReport includes PNG section and success suffix", () => {
+    const lines: string[] = [];
+    const originalLog = console.log;
+    console.log = mock((...args: unknown[]) => {
+      lines.push(args.join(" "));
+    }) as unknown as typeof console.log;
+
+    try {
+      printReport({
+        outputPath: "/tmp/out.pdf",
+        pageCount: 1,
+        expected: { widthCm: 9, heightCm: 5.5 },
+        actualFirstPage: { widthPt: 255.118, heightPt: 155.906, widthCm: 9, heightCm: 5.5 },
+        actualPages: [{ index: 0, widthPt: 255.118, heightPt: 155.906, widthCm: 9, heightCm: 5.5 }],
+        dimensionsOk: true,
+        warnings: [],
+        color: {
+          cmykRequested: true,
+          cmykConverted: true,
+          converter: "ghostscript",
+          validation: "passed",
+        },
+        pngOutputs: ["/tmp/out-1.png"],
+      });
+    } finally {
+      console.log = originalLog;
+    }
+
+    const output = lines.join("\n");
+    expect(output).toContain("PNG previews:");
+    expect(output).toContain("/tmp/out-1.png");
+    expect(output).toContain("PDF generated successfully. PNG previews generated.");
   });
 });

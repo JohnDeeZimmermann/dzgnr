@@ -9,11 +9,14 @@ import { fontWaitScript } from "../fonts/wait-for-fonts";
 import { mergePdfs } from "./merge-pdfs";
 import { convertToCmyk, skippedResult } from "./cmyk-convert";
 import type { CmykConversionResult } from "./cmyk-convert";
+import { rasterizePdfToPng, skippedPngResult } from "./png-preview";
+import type { PngPreviewResult, PngPageResult } from "./png-preview";
 import type { RenderOptions } from "../config/load-config";
 
 export interface RenderResult {
   warnings: string[];
   cmyk: CmykConversionResult;
+  png: PngPreviewResult;
 }
 
 async function renderSinglePage(
@@ -95,7 +98,20 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<RenderRes
             options.cmykProfile,
           );
           warnings.push(...cmykResult.warnings);
-          return { warnings, cmyk: cmykResult };
+
+          let pngResult = skippedPngResult();
+          if (options.png) {
+            const pattern = options.outputPath.replace(/\.pdf$/, "-%d.png");
+            pngResult = await rasterizePdfToPng({
+              pdfPath: options.outputPath,
+              outputPattern: pattern,
+              dpi: options.pngDpi,
+              cmykProfile: options.cmykProfile,
+              colorSource: "cmyk-mapped",
+            });
+            warnings.push(...pngResult.warnings);
+          }
+          return { warnings, cmyk: cmykResult, png: pngResult };
         } else {
           try {
             renameSync(mergedRgbPath, options.outputPath);
@@ -103,7 +119,19 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<RenderRes
             copyFileSync(mergedRgbPath, options.outputPath);
             try { unlinkSync(mergedRgbPath); } catch {}
           }
-          return { warnings, cmyk: skippedResult() };
+
+          let pngResult = skippedPngResult();
+          if (options.png) {
+            const pattern = options.outputPath.replace(/\.pdf$/, "-%d.png");
+            pngResult = await rasterizePdfToPng({
+              pdfPath: options.outputPath,
+              outputPattern: pattern,
+              dpi: options.pngDpi,
+              colorSource: "rgb-draft",
+            });
+            warnings.push(...pngResult.warnings);
+          }
+          return { warnings, cmyk: skippedResult(), png: pngResult };
         }
       } finally {
         for (const tf of tempFiles) {
@@ -113,6 +141,7 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<RenderRes
       }
     } else {
       let cmykResult: CmykConversionResult = skippedResult();
+      const pngOutputs: PngPageResult[] = [];
 
       for (let i = 0; i < pages.length; i++) {
         const finalOutputPath =
@@ -158,9 +187,33 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<RenderRes
           );
           warnings.push(...pageWarnings);
         }
+
+        if (options.png) {
+          const pagePngPath = finalOutputPath.replace(/\.pdf$/, ".png");
+          const pagePngResult = await rasterizePdfToPng({
+            pdfPath: finalOutputPath,
+            outputPattern: pagePngPath,
+            dpi: options.pngDpi,
+            cmykProfile: options.cmykProfile,
+            colorSource: options.cmyk ? "cmyk-mapped" : "rgb-draft",
+          });
+          warnings.push(...pagePngResult.warnings);
+          pngOutputs.push(...pagePngResult.outputs);
+        }
       }
 
-      return { warnings, cmyk: cmykResult };
+      const pngResult: PngPreviewResult = options.png
+        ? {
+            requested: true,
+            generated: pngOutputs.length > 0,
+            dpi: options.pngDpi,
+            colorSource: options.cmyk ? "cmyk-mapped" : "rgb-draft",
+            outputs: pngOutputs,
+            warnings: [],
+          }
+        : skippedPngResult();
+
+      return { warnings, cmyk: cmykResult, png: pngResult };
     }
   } finally {
     await browser.close();

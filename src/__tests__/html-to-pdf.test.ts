@@ -37,6 +37,8 @@ describe("renderHtmlToPdf return shape integration", () => {
       pages: [],
       mode: "separate",
       cmyk: false,
+      png: false,
+      pngDpi: 150,
     };
 
     const result = await mod.renderHtmlToPdf(options);
@@ -47,6 +49,15 @@ describe("renderHtmlToPdf return shape integration", () => {
       requested: false,
       converted: false,
       converter: "none",
+    });
+    expect(result).toHaveProperty("png");
+    expect(result.png).toEqual({
+      requested: false,
+      generated: false,
+      dpi: 0,
+      colorSource: "rgb-draft",
+      outputs: [],
+      warnings: [],
     });
   });
 });

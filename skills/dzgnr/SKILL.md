@@ -134,6 +134,12 @@ Primary render command:
 dzgnr render index.html --config dzgnr.json
 ```
 
+With PNG previews for visual inspection:
+
+```bash
+dzgnr render index.html --config dzgnr.json --png
+```
+
 Validation render command:
 
 ```bash
@@ -146,6 +152,7 @@ Validation checks:
 - expected page count (1 for single-page, higher for multi-page)
 - warnings reviewed and understood
 - CMYK conversion status: `color.validation` should be `"passed"`
+- PNG preview paths in `pngOutputs` when `--png` is enabled
 
 ## Design Quality Checklist
 

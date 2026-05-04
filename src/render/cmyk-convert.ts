@@ -14,7 +14,7 @@ const KNOWN_GS_PROFILE_PATHS = [
   "/usr/share/ghostscript/iccprofiles/default_cmyk.icc",
 ];
 
-function resolveCmykProfile(explicitPath?: string): string {
+export function resolveCmykProfile(explicitPath?: string): string {
   if (explicitPath) {
     if (!existsSync(explicitPath)) {
       throw new Error(`CMYK ICC profile not found: ${explicitPath}`);
@@ -43,7 +43,7 @@ function resolveCmykProfile(explicitPath?: string): string {
   );
 }
 
-function getVersion(): string | null {
+export function getGhostscriptVersion(): string | null {
   try {
     const result = spawnSync("gs", ["--version"], { encoding: "utf-8", timeout: 5000 });
     if (result.status === 0 && result.stdout) {
@@ -59,7 +59,7 @@ export async function convertToCmyk(
   profilePath?: string,
 ): Promise<CmykConversionResult> {
   const resolvedProfile = resolveCmykProfile(profilePath);
-  const version = getVersion();
+  const version = getGhostscriptVersion();
   if (!version) {
     throw new Error("Ghostscript not found. Install Ghostscript (gs) for CMYK conversion, or use --rgb for draft output.");
   }
@@ -118,6 +118,17 @@ export async function convertToCmyk(
     profilePath: resolvedProfile,
     warnings,
   };
+}
+
+export function resolveRgbOutputProfile(): string | undefined {
+  const rgbPaths = [
+    "/usr/share/ghostscript/iccprofiles/srgb.icc",
+    "/usr/share/ghostscript/iccprofiles/default_rgb.icc",
+  ];
+  for (const p of rgbPaths) {
+    if (existsSync(p)) return p;
+  }
+  return undefined;
 }
 
 export function skippedResult(): CmykConversionResult {
