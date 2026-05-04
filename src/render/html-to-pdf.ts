@@ -117,7 +117,7 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<RenderRes
             renameSync(mergedRgbPath, options.outputPath);
           } catch {
             copyFileSync(mergedRgbPath, options.outputPath);
-            try { unlinkSync(mergedRgbPath); } catch {}
+            try { unlinkSync(mergedRgbPath); } catch { /* cleanup best-effort */ }
           }
 
           let pngResult = skippedPngResult();
@@ -135,9 +135,9 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<RenderRes
         }
       } finally {
         for (const tf of tempFiles) {
-          try { unlinkSync(tf); } catch {}
+          try { unlinkSync(tf); } catch { /* cleanup best-effort */ }
         }
-        try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+        try { rmSync(tmpDir, { recursive: true, force: true }); } catch { /* cleanup best-effort */ }
       }
     } else {
       let cmykResult: CmykConversionResult = skippedResult();
@@ -174,8 +174,8 @@ export async function renderHtmlToPdf(options: RenderOptions): Promise<RenderRes
             warnings.push(...convResult.warnings);
             if (i === 0) cmykResult = convResult;
           } finally {
-            try { unlinkSync(tempRgbPath); } catch {}
-            try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+            try { unlinkSync(tempRgbPath); } catch { /* cleanup best-effort */ }
+            try { rmSync(tmpDir, { recursive: true, force: true }); } catch { /* cleanup best-effort */ }
           }
         } else {
           const pageWarnings = await renderSinglePage(

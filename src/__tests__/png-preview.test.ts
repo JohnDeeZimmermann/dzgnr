@@ -173,7 +173,7 @@ describe("PNG preview rasterization", () => {
       dpi: 150,
       colorSource: "rgb-draft",
     });
-    expect(single.outputs.map((o) => o.outputPath)).toEqual(["/tmp/single.png"]);
+    expect(single.outputs.map((o: { outputPath: string }) => o.outputPath)).toEqual(["/tmp/single.png"]);
 
     pageCount = 2;
     const multi = await mod.rasterizePdfToPng({
@@ -182,7 +182,7 @@ describe("PNG preview rasterization", () => {
       dpi: 150,
       colorSource: "rgb-draft",
     });
-    expect(multi.outputs.map((o) => o.outputPath)).toEqual(["/tmp/multi-1.png", "/tmp/multi-2.png"]);
+    expect(multi.outputs.map((o: { outputPath: string }) => o.outputPath)).toEqual(["/tmp/multi-1.png", "/tmp/multi-2.png"]);
   });
 
   test.serial("failure includes clear Ghostscript stderr message", async () => {

@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, renameSync, copyFileSync, unlinkSync } from "node:fs";
-import { dirname } from "node:path";
+
 
 export interface CmykConversionResult {
   requested: boolean;
@@ -49,7 +49,9 @@ export function getGhostscriptVersion(): string | null {
     if (result.status === 0 && result.stdout) {
       return result.stdout.trim();
     }
-  } catch {}
+  } catch {
+    // Ghostscript not available
+  }
   return null;
 }
 
@@ -100,7 +102,7 @@ export async function convertToCmyk(
     renameSync(tmpOutput, outputPath);
   } catch {
     copyFileSync(tmpOutput, outputPath);
-    try { unlinkSync(tmpOutput); } catch {}
+    try { unlinkSync(tmpOutput); } catch { /* cleanup best-effort */ }
   }
 
   const warnings: string[] = [];
