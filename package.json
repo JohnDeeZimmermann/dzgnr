@@ -10,7 +10,8 @@
     "dzgnr": "bun run src/index.ts",
     "dev": "bun --watch src/index.ts",
     "typecheck": "bun run tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint src/ && bun run lint:dirs",
+    "lint:dirs": "bun run scripts/lint-dir-limit.ts"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",
@@ -20,6 +21,9 @@
     "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
     "eslint": "^10.3.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import-x": "^4.16.2",
+    "eslint-plugin-sonarjs": "^4.0.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.2"
   }

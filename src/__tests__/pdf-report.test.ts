@@ -20,19 +20,19 @@ describe("PDF validation reporting with CMYK status", () => {
     const pdfPath = join(dir, "out.pdf");
     try {
       await createPdf(pdfPath, [{ widthPt: 255.118, heightPt: 155.906 }]);
-      const report = await validatePdf(
-        pdfPath,
-        9,
-        5.5,
-        ["pre-warning"],
-        {
+      const report = await validatePdf({
+        outputPath: pdfPath,
+        expectedWidthCm: 9,
+        expectedHeightCm: 5.5,
+        renderWarnings: ["pre-warning"],
+        cmyk: {
           requested: true,
           converted: true,
           converter: "ghostscript",
           profilePath: "/usr/share/ghostscript/iccprofiles/default_cmyk.icc",
           warnings: [],
         },
-      );
+      });
 
       expect(report.color.validation).toBe("passed");
       expect(report.warnings.some((w) => /CMYK conversion: Ghostscript/i.test(w))).toBe(true);
@@ -54,18 +54,18 @@ describe("PDF validation reporting with CMYK status", () => {
     const pdfPath = join(dir, "out.pdf");
     try {
       await createPdf(pdfPath, [{ widthPt: 255.118, heightPt: 155.906 }]);
-      const report = await validatePdf(
-        pdfPath,
-        9,
-        5.5,
-        [],
-        {
+      const report = await validatePdf({
+        outputPath: pdfPath,
+        expectedWidthCm: 9,
+        expectedHeightCm: 5.5,
+        renderWarnings: [],
+        cmyk: {
           requested: false,
           converted: false,
           converter: "none",
           warnings: [],
         },
-      );
+      });
 
       expect(report.color.validation).toBe("warning");
       expect(report.warnings.some((w) => /RGB\/draft mode/i.test(w))).toBe(true);
@@ -82,19 +82,19 @@ describe("PDF validation reporting with CMYK status", () => {
         { widthPt: 100, heightPt: 100 },
         { widthPt: 255.118, heightPt: 155.906 },
       ]);
-      const report = await validatePdf(
-        pdfPath,
-        9,
-        5.5,
-        [],
-        {
+      const report = await validatePdf({
+        outputPath: pdfPath,
+        expectedWidthCm: 9,
+        expectedHeightCm: 5.5,
+        renderWarnings: [],
+        cmyk: {
           requested: true,
           converted: false,
           converter: "ghostscript",
           warnings: [],
         },
-        1,
-      );
+        expectedPageCount: 1,
+      });
 
       expect(report.pageCount).toBe(2);
       expect(report.dimensionsOk).toBe(false);
@@ -113,20 +113,20 @@ describe("PDF validation reporting with CMYK status", () => {
       await createPdf(pdfPath, [{ widthPt: 255.118, heightPt: 155.906 }]);
       const pngOutputs = [join(dir, "out-1.png"), join(dir, "out-2.png")];
 
-      const report = await validatePdf(
-        pdfPath,
-        9,
-        5.5,
-        [],
-        {
+      const report = await validatePdf({
+        outputPath: pdfPath,
+        expectedWidthCm: 9,
+        expectedHeightCm: 5.5,
+        renderWarnings: [],
+        cmyk: {
           requested: true,
           converted: true,
           converter: "ghostscript",
           warnings: [],
         },
-        1,
+        expectedPageCount: 1,
         pngOutputs,
-      );
+      });
 
       expect(report.pngOutputs).toEqual(pngOutputs);
     } finally {

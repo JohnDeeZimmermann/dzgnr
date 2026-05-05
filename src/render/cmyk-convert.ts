@@ -55,20 +55,8 @@ export function getGhostscriptVersion(): string | null {
   return null;
 }
 
-export async function convertToCmyk(
-  inputPath: string,
-  outputPath: string,
-  profilePath?: string,
-): Promise<CmykConversionResult> {
-  const resolvedProfile = resolveCmykProfile(profilePath);
-  const version = getGhostscriptVersion();
-  if (!version) {
-    throw new Error("Ghostscript not found. Install Ghostscript (gs) for CMYK conversion, or use --rgb for draft output.");
-  }
-
-  const tmpOutput = outputPath + ".gs-tmp";
-
-  const args: string[] = [
+function buildCmykArgs(inputPath: string, tmpOutput: string, resolvedProfile: string): string[] {
+  return [
     "-dNOPAUSE",
     "-dBATCH",
     "-dSAFER",
@@ -86,7 +74,37 @@ export async function convertToCmyk(
     "-f",
     inputPath,
   ];
+}
 
+function moveTempOutput(tmpOutput: string, outputPath: string): void {
+  try {
+    renameSync(tmpOutput, outputPath);
+  } catch {
+    copyFileSync(tmpOutput, outputPath);
+    try { unlinkSync(tmpOutput); } catch { /* cleanup best-effort */ }
+  }
+}
+
+export function extractGsWarnings(stderr: string | undefined): string[] {
+  if (!stderr || stderr.length === 0) return [];
+  const gsMessage = stderr.slice(0, 500).trim();
+  if (!gsMessage) return [];
+  return [`Ghostscript: ${gsMessage.split("\n").slice(0, 3).join("; ")}`];
+}
+
+export async function convertToCmyk(
+  inputPath: string,
+  outputPath: string,
+  profilePath?: string,
+): Promise<CmykConversionResult> {
+  const resolvedProfile = resolveCmykProfile(profilePath);
+  const version = getGhostscriptVersion();
+  if (!version) {
+    throw new Error("Ghostscript not found. Install Ghostscript (gs) for CMYK conversion, or use --rgb for draft output.");
+  }
+
+  const tmpOutput = outputPath + ".gs-tmp";
+  const args = buildCmykArgs(inputPath, tmpOutput, resolvedProfile);
   const result = spawnSync("gs", args, { encoding: "utf-8", timeout: 120000 });
 
   if (result.status !== 0) {
@@ -98,27 +116,14 @@ export async function convertToCmyk(
     throw new Error("Ghostscript completed but did not produce output PDF.");
   }
 
-  try {
-    renameSync(tmpOutput, outputPath);
-  } catch {
-    copyFileSync(tmpOutput, outputPath);
-    try { unlinkSync(tmpOutput); } catch { /* cleanup best-effort */ }
-  }
-
-  const warnings: string[] = [];
-  if (result.stderr && result.stderr.length > 0) {
-    const gsMessage = result.stderr.slice(0, 500).trim();
-    if (gsMessage) {
-      warnings.push(`Ghostscript: ${gsMessage.split("\n").slice(0, 3).join("; ")}`);
-    }
-  }
+  moveTempOutput(tmpOutput, outputPath);
 
   return {
     requested: true,
     converted: true,
     converter: "ghostscript",
     profilePath: resolvedProfile,
-    warnings,
+    warnings: extractGsWarnings(result.stderr),
   };
 }
 

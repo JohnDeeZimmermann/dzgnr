@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { PDFDocument } from "pdf-lib";
-import { getGhostscriptVersion, resolveCmykProfile, resolveRgbOutputProfile } from "./cmyk-convert";
+import { getGhostscriptVersion, resolveCmykProfile, resolveRgbOutputProfile, extractGsWarnings } from "./cmyk-convert";
 
 export interface PngPageResult {
   pageIndex: number;
@@ -42,6 +42,58 @@ function computeOutputPaths(
   return paths;
 }
 
+function buildPngArgs(
+  baseArgs: string[],
+  colorSource: "cmyk-mapped" | "rgb-draft",
+  cmykProfilePath: string | undefined,
+): string[] {
+  const args = [...baseArgs];
+  if (colorSource !== "cmyk-mapped") return args;
+
+  const cmykProfile = resolveCmykProfile(cmykProfilePath);
+  args.push(`-sDefaultCMYKProfile=${cmykProfile}`);
+
+  const rgbProfile = resolveRgbOutputProfile();
+  if (!rgbProfile) {
+    throw new Error(
+      "Could not locate an sRGB ICC profile required for CMYK-mapped PNG previews. " +
+      "Install Ghostscript ICC profiles or use --rgb for draft output.",
+    );
+  }
+  args.push(`-sOutputICCProfile=${rgbProfile}`);
+  args.push("-dRenderIntent=0");
+  return args;
+}
+
+function collectPngOutputs(
+  outputPattern: string,
+  pageCount: number,
+  pdfPath: string,
+): PngPageResult[] {
+  const outputPaths = computeOutputPaths(outputPattern, pageCount);
+  const outputs: PngPageResult[] = [];
+  for (let i = 0; i < outputPaths.length; i++) {
+    if (!existsSync(outputPaths[i])) {
+      throw new Error(`Ghostscript completed but did not produce expected PNG: ${outputPaths[i]}`);
+    }
+    outputs.push({ pageIndex: i, outputPath: outputPaths[i], sourcePdfPath: pdfPath });
+  }
+  return outputs;
+}
+
+function validatePngRender(gsVersion: string | null, pageCount: number, outputPattern: string): void {
+  if (!gsVersion) {
+    throw new Error(
+      "Ghostscript (gs) is required for PNG preview generation. Install Ghostscript or omit --png.",
+    );
+  }
+  if (pageCount > 1 && !outputPattern.includes("%d")) {
+    throw new Error(
+      `PDF has ${pageCount} pages but outputPattern "${outputPattern}" does not contain %d for multi-page output.`,
+    );
+  }
+}
+
 export async function rasterizePdfToPng(options: {
   pdfPath: string;
   outputPattern: string;
@@ -49,53 +101,19 @@ export async function rasterizePdfToPng(options: {
   cmykProfile?: string;
   colorSource: "cmyk-mapped" | "rgb-draft";
 }): Promise<PngPreviewResult> {
-  const warnings: string[] = [];
-  const gsVersion = getGhostscriptVersion();
-  if (!gsVersion) {
-    throw new Error(
-      "Ghostscript (gs) is required for PNG preview generation. Install Ghostscript or omit --png.",
-    );
-  }
-
   const pageCount = await getPdfPageCount(options.pdfPath);
+  validatePngRender(getGhostscriptVersion(), pageCount, options.outputPattern);
 
-  const hasPattern = options.outputPattern.includes("%d");
-  if (pageCount > 1 && !hasPattern) {
-    throw new Error(
-      `PDF has ${pageCount} pages but outputPattern "${options.outputPattern}" does not contain %d for multi-page output.`,
-    );
-  }
-
-  const outputFile = hasPattern ? options.outputPattern : options.outputPattern;
-
-  const args: string[] = [
-    "-dNOPAUSE",
-    "-dBATCH",
-    "-dSAFER",
-    "-sDEVICE=png16m",
-    "-dTextAlphaBits=4",
-    "-dGraphicsAlphaBits=4",
-    `-r${options.dpi}`,
-  ];
-
-  if (options.colorSource === "cmyk-mapped") {
-    const cmykProfile = resolveCmykProfile(options.cmykProfile);
-    args.push(`-sDefaultCMYKProfile=${cmykProfile}`);
-
-    const rgbProfile = resolveRgbOutputProfile();
-    if (!rgbProfile) {
-      throw new Error(
-        "Could not locate an sRGB ICC profile required for CMYK-mapped PNG previews. " +
-        "Install Ghostscript ICC profiles or use --rgb for draft output.",
-      );
-    }
-    args.push(`-sOutputICCProfile=${rgbProfile}`);
-    args.push("-dRenderIntent=0");
-  }
-
-  args.push(`-sOutputFile=${outputFile}`);
-  args.push("-f");
-  args.push(options.pdfPath);
+  const args = buildPngArgs(
+    [
+      "-dNOPAUSE", "-dBATCH", "-dSAFER", "-sDEVICE=png16m",
+      "-dTextAlphaBits=4", "-dGraphicsAlphaBits=4",
+      `-r${options.dpi}`, `-sOutputFile=${options.outputPattern}`,
+      "-f", options.pdfPath,
+    ],
+    options.colorSource,
+    options.cmykProfile,
+  );
 
   const result = spawnSync("gs", args, { encoding: "utf-8", timeout: 120000 });
 
@@ -104,34 +122,13 @@ export async function rasterizePdfToPng(options: {
     throw new Error(`Ghostscript PNG rasterization failed: ${stderr || "unknown error"}`);
   }
 
-  if (result.stderr && result.stderr.length > 0) {
-    const gsMessage = result.stderr.slice(0, 500).trim();
-    if (gsMessage) {
-      warnings.push(`Ghostscript: ${gsMessage.split("\n").slice(0, 3).join("; ")}`);
-    }
-  }
-
-  const outputPaths = computeOutputPaths(options.outputPattern, pageCount);
-  const outputs: PngPageResult[] = [];
-
-  for (let i = 0; i < outputPaths.length; i++) {
-    if (!existsSync(outputPaths[i])) {
-      throw new Error(`Ghostscript completed but did not produce expected PNG: ${outputPaths[i]}`);
-    }
-    outputs.push({
-      pageIndex: i,
-      outputPath: outputPaths[i],
-      sourcePdfPath: options.pdfPath,
-    });
-  }
-
   return {
     requested: true,
     generated: true,
     dpi: options.dpi,
     colorSource: options.colorSource,
-    outputs,
-    warnings,
+    outputs: collectPngOutputs(options.outputPattern, pageCount, options.pdfPath),
+    warnings: extractGsWarnings(result.stderr),
   };
 }
 

@@ -78,53 +78,56 @@ export function loadConfig(configPath?: string): DzgnrConfig {
   return parsed;
 }
 
+function resolveMedia(cliArgs: CliArgs, config: DzgnrConfig): "print" | "screen" {
+  if (cliArgs.screen) return "screen";
+  if (config.media === "screen") return "screen";
+  return "print";
+}
+
+function requireDimension(value: number | undefined, label: string): number {
+  if (value === undefined || value <= 0) {
+    throw new Error(`Missing required ${label} in cm. Provide via --${label} flag or config file.`);
+  }
+  return value;
+}
+
+function resolveOutputPath(inputPath: string, cliArgs: CliArgs, config: DzgnrConfig): string {
+  const raw = cliArgs.outputPath ?? config.output ?? inputPath.replace(extname(inputPath), ".pdf");
+  return raw.endsWith(".pdf") ? raw : raw + ".pdf";
+}
+
+function resolvePngDpi(cliArgs: CliArgs, config: DzgnrConfig): number {
+  const dpi = cliArgs.pngDpi ?? config.pngDpi ?? 150;
+  if (dpi <= 0 || !isFinite(dpi)) {
+    throw new Error(`Invalid PNG DPI: ${dpi}. Must be a positive finite number.`);
+  }
+  return dpi;
+}
+
+function resolveBool(cliOverride: boolean | undefined, configOverride: boolean | undefined, defaultValue: boolean): boolean {
+  if (cliOverride !== undefined) return cliOverride;
+  return configOverride ?? defaultValue;
+}
+
 export function mergeOptions(cliArgs: CliArgs, config: DzgnrConfig): RenderOptions {
   const inputPath = resolve(cliArgs.inputPath);
-
-  const outputPath =
-    cliArgs.outputPath ?? config.output ?? inputPath.replace(extname(inputPath), ".pdf");
-
-  const widthCm = cliArgs.widthCm ?? config.widthCm;
-  const heightCm = cliArgs.heightCm ?? config.heightCm;
-
-  if (widthCm === undefined || widthCm <= 0) {
-    throw new Error("Missing required width in cm. Provide via --width flag or config file.");
-  }
-  if (heightCm === undefined || heightCm <= 0) {
-    throw new Error("Missing required height in cm. Provide via --height flag or config file.");
-  }
-
-  const media: "print" | "screen" = cliArgs.screen
-    ? "screen"
-    : config.media === "screen"
-      ? "screen"
-      : "print";
-
-  const normalizedOutput = outputPath.endsWith(".pdf") ? outputPath : outputPath + ".pdf";
-
-  const cmyk = cliArgs.rgb ? false : (config.cmyk ?? true);
-
-  const png = cliArgs.png === true ? true : (config.png ?? false);
-
-  const pngDpi = cliArgs.pngDpi ?? config.pngDpi ?? 150;
-  if (pngDpi <= 0 || !isFinite(pngDpi)) {
-    throw new Error(`Invalid PNG DPI: ${pngDpi}. Must be a positive finite number.`);
-  }
+  const widthCm = requireDimension(cliArgs.widthCm ?? config.widthCm, "width");
+  const heightCm = requireDimension(cliArgs.heightCm ?? config.heightCm, "height");
 
   return {
     inputPath,
-    outputPath: normalizedOutput,
+    outputPath: resolveOutputPath(inputPath, cliArgs, config),
     widthCm,
     heightCm,
     printBackground: config.printBackground ?? true,
-    media,
+    media: resolveMedia(cliArgs, config),
     preferCssPageSize: config.preferCssPageSize ?? false,
     json: cliArgs.json ?? false,
     pages: config.pages ?? [],
     mode: config.mode ?? "combined",
-    cmyk,
+    cmyk: cliArgs.rgb ? false : (config.cmyk ?? true),
     cmykProfile: config.cmykProfile,
-    png,
-    pngDpi,
+    png: resolveBool(cliArgs.png, config.png, false),
+    pngDpi: resolvePngDpi(cliArgs, config),
   };
 }
